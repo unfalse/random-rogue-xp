@@ -1083,20 +1083,63 @@ void showRatsOnMap(int ratNum);
 
 // Попытка переписать карту, используя массив просматриваемой области
 // Должно работать так же как displayAbsMap, но так, чтобы
-// можно было задать любой размер области просмотра
+// можно было задать любой размер области просмотра.
+// Это значительно улучшит и упростит код.
 void displayAbsMap2() {
 	fillRatsMap();
-	int mx = player1.p_x;
-	int my = player1.p_y;
+	int p1x = player1.p_x;
+	int p1y = player1.p_y;
 	int i = 0;
 	int j = 0;
 	int viewBuf[VIEW_BUF_W][VIEW_BUF_H];
+
 
 	GetConsoleScreenBufferInfo(hConsole, &coninfo);
 	coninfo.dwCursorPosition.Y = 6;    // move up one line
 	coninfo.dwCursorPosition.X = 0;    // move to the right the length of the word
 	SetConsoleCursorPosition(hConsole, coninfo.dwCursorPosition);
 
+	// Заполнение экранного буфера
+	for (int h = 0; h < VIEW_AREA_H; h++) {
+		for (int w = 0; w < VIEW_AREA_W; w++) {
+			int x = p1x - VIEW_AREA_W/2 + w;
+			int y = p1y - VIEW_AREA_H/2 + h;
+
+			if (x >= 0 && x < W && y >= 0 && y < H) {
+				viewBuf[(w * 2) + 1][(h * 2) + 1] = map[x][y];
+				viewBuf[(w * 2) + 1][(h * 2) + 1] = ratsMap[x][y];
+			}
+			else {
+				viewBuf[w][h] = 0; // '%'
+			}
+		}
+	}
+
+	// Здесь будет вывод буфера на экран обычным printf
+
+/*
+0123456789
+1
+2. . . . .
+3   
+4. . . . .
+5
+6. . . . .
+7
+8. . . . .
+9    ^
+A. . @ . .
+B
+C. . . . .
+D
+E. . . . .
+F
+0. . . . .
+1
+2. . . . .
+3
+4. . . . .
+*/
 
 }
 
