@@ -20,6 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="randomrl.c" />
+    <ClCompile Include="rat.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="objects.h" />
+    <ClInclude Include="rat.h" />
+    <ClInclude Include="rrl_headers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

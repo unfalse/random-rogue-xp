@@ -2,7 +2,7 @@
  * * * * * * * * * * Random Rogue-Like * * * * * * * * * * * * * * *
  * Текстовый квест с окружением, которое генерится на ходу и случайно.
  * Баги:
-	- верхняя стена отображается ниже, чем надо, игрок ходит внутри неё
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
@@ -18,56 +18,7 @@
  // using namespace std;
 
 #include "objects.h"
-
-
-#define mapMaxX 80
-#define mapMaxY 8
-
-#define W 50
-#define H 50
-
-#define VIEW_AREA_W 10
-#define VIEW_AREA_H 5
-
-
-void enumerateObjs(int, int, int); // система
-
-void genNewRandomObj(int, int); // система
-void genAllEnv(int, int); // система
-void genNewObj(int, int, int); // система
-void genSecretCells(); // система
-void genObjectsAtRandomPos(); // система
-void genCycle(int, int); // система
-
-void triggerSecretCell(); // система
-void displayAbsMap();
-int secretColHere(int, int); // система
-void markGround();
-void help();
-
-
-
-
-
-void ratsAttack();
-void ratAttacked(int, int);
-void bossAttacked();
-void decayDeadRats();
-void generateDeadRats();
-void ratLogic();
-void fillRatsMap();
-void killAllRatsButOne();
-
-void createBossRoom();
-void activateBossRoom();
-void activateBoss2Room();
-void boss1Action();
-void boss2Action();
-int playerIsNear(int, int);
-
-
-
-
+//#include ""
 
 struct ratStat {
 	int life;
@@ -94,7 +45,7 @@ int secretCount = 0;
 struct secretCol secretCols[7];
 struct secretCell secretCells[7];
 int cellsEnabled = 0; // при нажатии, если это первая плита, увеличивается на 1, и т.д. соответственно порядковому номеру
-int weapon2 = 0; // флаг того, что мощное оружие найдено
+
 
 struct bossStat {
 	int life;
@@ -144,6 +95,7 @@ int right_[2];
 struct player {
 	int life;
 	int weapon;
+	int weapon2; // флаг того, что мощное оружие найдено
 	int kirka; // вместо кирки теперь отбойник. работает на аккумуляторах
 	int medkits;
 	int gold;
@@ -157,10 +109,15 @@ struct player {
 	int actionInt;
 	char* whatWasDone;
 	int notAction;
+	// состояние
+	// 0, 1, 2, 3
+	// стоит, идет, атакует, крушит стенку
+	int state;
 };
 
 struct player player1;
 
+void setSidesCoords(char);
 void changeLook(char); // игрок
 void goForward();
 void takeItem();
@@ -173,6 +130,7 @@ void processKeys();
 void initPlayer1() {
 	player1.life = 10000;
 	player1.weapon = 1;
+	player1.weapon2 = 0;
 	player1.kirka = 1; // вместо кирки теперь отбойник. работает на аккумуляторах
 	player1.medkits = 0;
 	player1.gold = 0;
@@ -183,12 +141,11 @@ void initPlayer1() {
 	player1.look = 'U';
 	player1.power_range = 2;
 	player1.power = 60;
+	player1.state = 0;
+	setSidesCoords(player1.look);
 }
 
-// состояние
-// 0, 1, 2, 3
-// стоит, идет, атакует, крушит стенку
-int state = 0;
+
 int isExit;
 
 HANDLE hConsole;
@@ -213,12 +170,6 @@ int main() {
 	getch();
 
 	system("cls");
-
-	// первоначально герой смотрит "вверх"
-	up_[0] = 0; up_[1] = -1;
-	down_[0] = 0; down_[1] = 1;
-	left_[0] = -1; left_[1] = 0;
-	right_[0] = 1; right_[1] = 0;
 
 	system("cls");
 	printf("\n\n\nВы открываете глаза и обнаруживаете себя в кромешной тьме. Глаза привыкают, но видимость лишь на расстоянии вытянутой руки...\n\n[Нажмите английскую p]");
@@ -295,7 +246,7 @@ int main() {
 void processKeys() {
 	// W
 	if (player1.actionInt == 119) {
-		state = 1;
+		player1.state = 1;
 		goForward();
 	}
 
@@ -319,7 +270,7 @@ void processKeys() {
 
 	// E
 	if (player1.actionInt == 101) {
-		//state=0;
+		//player1.state=0;
 		takeItem();
 	}
 
@@ -443,7 +394,7 @@ void goForward() {
 
 // создать объекты вокруг
 // x и y - точка, вокруг которой будут создаваться объекты (относительные координаты)
-void genAllEnv(int x, int y) {
+void genObjectsAround(int x, int y) {
 	int mx = x;
 	int my = y;
 	int relx = 0;
@@ -537,6 +488,42 @@ int getDirIndex(char* dirs, char c) {
 	return ptr ? ptr - dirs : -1;
 }
 
+// Изменяет координаты сторон при смене направления игрока
+void setSidesCoords(char where) {
+	switch (where) {
+	case 'U':
+		up_[0] = 0; up_[1] = -1;
+		down_[0] = 0; down_[1] = 1;
+		left_[0] = -1; left_[1] = 0;
+		right_[0] = 1; right_[1] = 0;
+		//sprintf(player1.whatWasDone, "Вы идёте вперёд.\n");
+		break;
+	case 'L':
+		up_[0] = -1; up_[1] = 0;
+		down_[0] = 1; down_[1] = 0;
+		left_[0] = 0; left_[1] = 1;
+		right_[0] = 0; right_[1] = -1;
+		//sprintf(player1.whatWasDone, "Вы повернули налево.\n");
+		break;
+	case 'D':
+		up_[0] = 0; up_[1] = 1;
+		down_[0] = 0; down_[1] = -1;
+		left_[0] = 1; left_[1] = 0;
+		right_[0] = -1; right_[1] = 0;
+		//sprintf(player1.whatWasDone, "Вы развернулись назад.\n");
+		break;
+	case 'R':
+		up_[0] = 1; up_[1] = 0;
+		down_[0] = -1; down_[1] = 0;
+		left_[0] = 0; left_[1] = -1;
+		right_[0] = 0; right_[1] = 1;
+		//sprintf(player1.whatWasDone, "Вы повернули направо.\n");
+		break;
+	default:
+		break;
+	}
+}
+
 // L -- RDLU
 // сменить направление, куда смотрит герой
 void changeLook(char where) {
@@ -560,39 +547,7 @@ void changeLook(char where) {
 	}
 
 	player1.look = dirs[newLookInd];
-
-	switch (player1.look) {
-		case 'U':
-			up_[0] = 0; up_[1] = -1;
-			down_[0] = 0; down_[1] = 1;
-			left_[0] = -1; left_[1] = 0;
-			right_[0] = 1; right_[1] = 0;
-			//sprintf(player1.whatWasDone, "Вы идёте вперёд.\n");
-			break;
-		case 'L':
-			up_[0] = -1; up_[1] = 0;
-			down_[0] = 1; down_[1] = 0;
-			left_[0] = 0; left_[1] = 1;
-			right_[0] = 0; right_[1] = -1;
-			//sprintf(player1.whatWasDone, "Вы повернули налево.\n");
-			break;
-		case 'D':
-			up_[0] = 0; up_[1] = 1;
-			down_[0] = 0; down_[1] = -1;
-			left_[0] = 1; left_[1] = 0;
-			right_[0] = -1; right_[1] = 0;
-			//sprintf(player1.whatWasDone, "Вы развернулись назад.\n");
-			break;
-		case 'R':
-			up_[0] = 1; up_[1] = 0;
-			down_[0] = -1; down_[1] = 0;
-			left_[0] = 0; left_[1] = -1;
-			right_[0] = 0; right_[1] = 1;
-			//sprintf(player1.whatWasDone, "Вы повернули направо.\n");
-			break;
-		default:
-			break;
-	}
+	setSidesCoords(player1.look);
 }
 
 // будет пробегать по массиву крыс и РАЗЛАГАТЬ их
@@ -855,8 +810,8 @@ void breakTheWall() {
 	int my = player1.p_y;
 
 	if (map[mx + up_[0]][my + up_[1]] == WALL) {
-		if (state != 3) {
-			state = 3;
+		if (player1.state != 3) {
+			player1.state = 3;
 			obj3_life = 30;
 		}
 
@@ -952,8 +907,8 @@ void ratAttacked(int newx, int newy) {
 	int ratHere = isRatThere(newx, newy);
 	// TODO: рассчитать вероятность удара (случайное число)
 	// можно промахнуться
-	if (state != 2) {
-		state = 2;
+	if (player1.state != 2) {
+		player1.state = 2;
 	}
 
 	if (ratHere >= 0) {
@@ -1078,6 +1033,7 @@ int isLookRight() {
 }
 
 // новая версия карты (игрок всегда в центре, карта занимает 80на8 клеток)
+// Функция не дописана :(
 // центр 39:4
 // используется буфер экрана(двумерный массив)
 void displayMap() {
@@ -1124,6 +1080,25 @@ int playerIsInsideViewArea(int i, int j) {
 void displayPlayerStatus(int i);
 void showThingsOnMap(int thingNum);
 void showRatsOnMap(int ratNum);
+
+// Попытка переписать карту, используя массив просматриваемой области
+// Должно работать так же как displayAbsMap, но так, чтобы
+// можно было задать любой размер области просмотра
+void displayAbsMap2() {
+	fillRatsMap();
+	int mx = player1.p_x;
+	int my = player1.p_y;
+	int i = 0;
+	int j = 0;
+	int viewBuf[VIEW_BUF_W][VIEW_BUF_H];
+
+	GetConsoleScreenBufferInfo(hConsole, &coninfo);
+	coninfo.dwCursorPosition.Y = 6;    // move up one line
+	coninfo.dwCursorPosition.X = 0;    // move to the right the length of the word
+	SetConsoleCursorPosition(hConsole, coninfo.dwCursorPosition);
+
+
+}
 
 // Карта отображается в абсолютных координатах (не поворачивается за игроком)
 void displayAbsMap() {

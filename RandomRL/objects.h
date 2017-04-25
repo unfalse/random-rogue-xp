@@ -28,3 +28,58 @@ enum objects {
   CELL = 12, // потайная плита
   DEADRAT = 13 // мертвая крыса
 };
+
+// карта
+#define mapMaxX 80
+#define mapMaxY 8
+
+#define W 50
+#define H 50
+
+#define VIEW_AREA_W 10
+#define VIEW_AREA_H 5
+
+#define VIEW_BUF_W VIEW_AREA_W*2
+#define VIEW_BUF_H VIEW_AREA_H*2
+
+// системные функции
+void enumerateObjs(int, int, int); // система
+
+void genNewRandomObj(int, int); // система
+void genObjectsAround(int, int); // система
+void genNewObj(int, int, int); // система
+void genSecretCells(); // система
+void genObjectsAtRandomPos(); // система
+void genCycle(int, int); // система
+
+void triggerSecretCell(); // система
+void displayAbsMap();
+int secretColHere(int, int); // система
+void markGround();
+void help();
+
+// +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
+
+// |					крысы/дроны					 |
+
+// +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
+void ratsAttack();
+void ratAttacked(int, int);
+void bossAttacked();
+void decayDeadRats();
+void generateDeadRats();
+void ratLogic();
+void fillRatsMap();
+void killAllRatsButOne();
+
+// +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
+
+// |				босс и его комната				 |
+
+// +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
+void createBossRoom();
+void activateBossRoom();
+void activateBoss2Room();
+void boss1Action();
+void boss2Action();
+int playerIsNear(int, int);
