@@ -21,6 +21,9 @@
     <ClCompile Include="rat.c">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="test-thing.c">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rrl_headers.h">

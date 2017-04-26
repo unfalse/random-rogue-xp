@@ -1093,6 +1093,8 @@ void displayAbsMap2() {
 	int j = 0;
 	int viewBuf[VIEW_BUF_W][VIEW_BUF_H];
 
+	//map[0] = int[] {1, 2, 3, 4, 5};
+
 
 	GetConsoleScreenBufferInfo(hConsole, &coninfo);
 	coninfo.dwCursorPosition.Y = 6;    // move up one line
@@ -1110,7 +1112,7 @@ void displayAbsMap2() {
 				viewBuf[(w * 2) + 1][(h * 2) + 1] = ratsMap[x][y];
 			}
 			else {
-				viewBuf[w][h] = 0; // '%'
+				viewBuf[w][h] = 9; // '%'
 			}
 		}
 	}
