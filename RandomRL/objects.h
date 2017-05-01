@@ -22,12 +22,18 @@ enum objects {
 	PICK = 6,
 	DAGGER = 7,
 	GOLD = 8,
-  WALL2 = 9, // непробиваемая стена
-  BOSS1 = 10,
-  BOSS2 = 11,
-  CELL = 12, // потайная плита
-  DEADRAT = 13 // мертвая крыса
+	WALL2 = 9, // непробиваемая стена
+	BOSS1 = 10,
+	BOSS2 = 11,
+	CELL = 12, // потайная плита
+	DEADRAT = 13, // мертвая крыса
+	LEFT = 14,
+	UP = 15,
+	RIGHT = 16,
+	DOWN = 17
 };
+
+char objectTypes[18];
 
 // карта
 #define mapMaxX 80
@@ -51,17 +57,24 @@ void genNewObj(int, int, int); // система
 void genSecretCells(); // система
 void genObjectsAtRandomPos(); // система
 void genCycle(int, int); // система
+void setObjectTypes();
 
 void triggerSecretCell(); // система
 void displayAbsMap();
+void displayMapArea();
+void fillViewBufWithSpaces();
 int secretColHere(int, int); // система
 void markGround();
 void help();
+void debugDisplayAreaNums();
+
+int* getPlayerDirection();
+void displayPlayerStatus(int i);
+void showThingsOnMap(int thingNum);
+void showRatsOnMap(int ratNum);
 
 // +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
-
 // |					крысы/дроны					 |
-
 // +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
 void ratsAttack();
 void ratAttacked(int, int);
@@ -73,9 +86,7 @@ void fillRatsMap();
 void killAllRatsButOne();
 
 // +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
-
 // |				босс и его комната				 |
-
 // +- - -- - -- - -- - -- - -- - -- - -- - -- - -- - +
 void createBossRoom();
 void activateBossRoom();

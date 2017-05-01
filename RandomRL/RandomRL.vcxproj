@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClCompile Include="randomrl.c" />
     <ClCompile Include="rat.c" />
-    <ClCompile Include="test-thing.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="objects.h" />

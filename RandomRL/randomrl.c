@@ -83,6 +83,7 @@ int env_d = 0;
 
 int map[W][H];
 int ratsMap[W][H];
+int viewBuf[VIEW_BUF_W][VIEW_BUF_H];
 
 // направления
 // [0] - x, [1] - y
@@ -156,6 +157,8 @@ int main() {
 	setlocale(LC_ALL, "");
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
+	setObjectTypes();
+
 	srand(time(NULL));
 	initPlayer1();
 	player1.whatWasDone = (char*)malloc(512);
@@ -190,11 +193,9 @@ int main() {
 
 	//map[ mx+2 ][ my+1 ] = MEDKIT;
 
-	//createBossRoom();
-	//genSecretCells();
-	printf("\n\ngenObjectsAtRandomPos();  BEFORE");
+	createBossRoom();
+	genSecretCells();
 	genObjectsAtRandomPos();
-	printf("\n\ngenObjectsAtRandomPos();  AFTER");
 
 	while (isExit == 0)
 	{
@@ -224,9 +225,13 @@ int main() {
 		// genAllEnv(p_x, p_y);
 		printf("%s", player1.whatWasDone);
 		sprintf(player1.whatWasDone, "");
-		displayAbsMap();
+		//displayAbsMap();
+		displayMapArea();
 
 		printf("\nВведите букву действия: ");
+
+		printf("\n");
+		debugDisplayAreaNums();
 
 		player1.actionInt = getch();
 
@@ -1067,6 +1072,99 @@ void displayMap() {
 
 }
 
+void displayMapArea() {
+	int p1x = player1.p_x;
+	int p1y = player1.p_y;
+
+	fillViewBufWithSpaces();
+	fillRatsMap();
+
+	// Заполнение буфера экрана
+	for (int h = 0; h < VIEW_AREA_H; h++) {
+		for (int w = 0; w < VIEW_AREA_W; w++) {
+			int x = p1x - VIEW_AREA_W / 2 + w;
+			int y = p1y - VIEW_AREA_H / 2 + h;
+
+			if (x >= 0 && x < W && y >= 0 && y < H) {
+				int objectOnMap = map[x][y];
+				int rat = ratsMap[x][y];
+				if (rat != 0) {
+					objectOnMap = rat;
+				}
+				viewBuf[(w * 2) + 1][(h * 2) + 1] = objectOnMap;
+			}
+			else {
+				viewBuf[(w * 2) + 1][(h * 2) + 1] = WALL2; // '%'
+			}
+		}
+	}
+
+	int p1_cx = VIEW_AREA_W / 2 * 2 + 1;
+	int p1_cy = VIEW_AREA_H / 2 * 2 + 1;
+	viewBuf[p1_cx][p1_cy] = PLAYER;
+	int *playerDir = getPlayerDirection();
+	viewBuf[p1_cx + *(playerDir+0)][p1_cy + *(playerDir + 1)] = *(playerDir + 2);
+
+	GetConsoleScreenBufferInfo(hConsole, &coninfo);
+	coninfo.dwCursorPosition.Y = 6;    // move up one line
+	coninfo.dwCursorPosition.X = 0;    // move to the right the length of the word
+	SetConsoleCursorPosition(hConsole, coninfo.dwCursorPosition);
+
+	// Вывод буфера на экран
+	for (int h = 0; h < VIEW_BUF_H; h++) {
+		for (int w = 0; w < VIEW_BUF_W; w++) {
+			int objNum = viewBuf[w][h];
+			char objChar = objectTypes[objNum];
+			printf("%c", objChar);
+			
+			/*
+			int rat = ratsMap[w][h];
+			if (rat != 0) {
+				showRatsOnMap(rat);
+			*/
+		}
+		displayPlayerStatus(h);
+		printf("\n");
+	}
+}
+
+void debugDisplayAreaNums() {
+	for (int h = 0; h < VIEW_BUF_H; h++) {
+		for (int w = 0; w < VIEW_BUF_W; w++) {
+			printf("%d ", viewBuf[w][h]);
+		}
+		printf("\n");
+	}
+}
+
+// result[0] - x
+// result[1] - y
+// result[2] - dir
+int* getPlayerDirection() {
+	int result[3] = {0, 0, -1};
+	if (isLookLeft()) {
+		result[0] = -1;
+		result[1] = 0;
+		result[2] = LEFT;
+	}
+	if (isLookUp()) {
+		result[0] = 0;
+		result[1] = -1;
+		result[2] = UP;
+	}
+	if (isLookRight()) {
+		result[0] = 1;
+		result[1] = 0;
+		result[2] = RIGHT;
+	}
+	if (isLookDown()) {
+		result[0] = 0;
+		result[1] = 1;
+		result[2] = DOWN;
+	}
+	return result;
+}
+
 int playerIsInsideViewArea(int i, int j) {
 	return ((
 		((player1.p_x - 2 + j) < W) &&
@@ -1076,10 +1174,6 @@ int playerIsInsideViewArea(int i, int j) {
 		((player1.p_y - 2 + i) < H) &&
 			((player1.p_y - 2 + i) >= 0))) ? 1 : 0;
 }
-
-void displayPlayerStatus(int i);
-void showThingsOnMap(int thingNum);
-void showRatsOnMap(int ratNum);
 
 // Попытка переписать карту, используя массив просматриваемой области
 // Должно работать так же как displayAbsMap, но так, чтобы
@@ -1220,22 +1314,22 @@ void displayAbsMap() {
 void displayPlayerStatus(int i) {
 	switch (i) {
 	case 0:
-		printf("Впереди:\t ");
+		printf("  Впереди:\t ");
 		enumerateObjs(whatsAhead(), UX(), UY());
 		break;
 	case 1:
-		printf("Слева:\t ");
+		printf("  Слева:\t ");
 		enumerateObjs(whatsLeft(), LX(), LY());
 		break;
 	case 2:
-		printf("Справа:\t ");
+		printf("  Справа:\t ");
 		enumerateObjs(whatsRight(), RX(), RY());
 		break;
 	case 3:
-		printf("Жизни:\t %d", player1.life);
+		printf("  Жизни:\t %d", player1.life);
 		break;
 	case 4:
-		printf("Под ногами:\t ");
+		printf("  Под ногами:\t ");
 		enumerateObjs(whatsUnderFeet(), CX(), CY_());
 		break;
 	default:
@@ -1286,18 +1380,18 @@ void showThingsOnMap(int thingNum) {
 
 void showRatsOnMap(int ratNum) {
 	switch (ratNum) {
-	case DEADRAT:
-		printf("D");
-		break;
-	case RAT:
-		printf("R");
-		break;
-	case 0:
-		printf("0");
-		break;
-	default:
-		printf("r");
-		break;
+		case DEADRAT:
+			printf("D");
+			break;
+		case RAT:
+			printf("R");
+			break;
+		case 0:
+			printf("0");
+			break;
+		default:
+			printf("r");
+			break;
 	}
 }
 
@@ -1676,4 +1770,33 @@ void markGround() {
 	if (RX() < W)
 		if (map[RX()][player1.p_y] == EMPTINESS)
 			map[RX()][player1.p_y] = GROUND;
+}
+
+void fillViewBufWithSpaces() {
+	for (int h = 0; h < VIEW_BUF_H; h++) {
+		for (int w = 0; w < VIEW_BUF_W; w++) {
+			viewBuf[w][h] = EMPTINESS;
+		}
+	}
+}
+
+void setObjectTypes() {
+	objectTypes[PLAYER] = '@';
+	objectTypes[EMPTINESS] = ' ';
+	objectTypes[GROUND] = '_';
+	objectTypes[WALL] = '#';
+	objectTypes[WALL2] = '%';
+	objectTypes[BOSS1] = 'B';
+	objectTypes[BOSS2] = 'S';
+	objectTypes[MEDKIT] = '+';
+	objectTypes[PICK] = '?';
+	objectTypes[DAGGER] = '!';
+	objectTypes[GOLD] = '$';
+	objectTypes[CELL] = '.';
+	objectTypes[LEFT] = '<';
+	objectTypes[RIGHT] = '>';
+	objectTypes[UP] = '^';
+	objectTypes[DOWN] = 'v';
+	objectTypes[DEADRAT] = 'D';
+	objectTypes[RAT] = 'R';
 }
